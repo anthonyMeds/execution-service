@@ -1,0 +1,18 @@
+target/
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+.settings/
+.classpath
+.project
+
+# Segredos: o arquivo real nunca entra no git, so o .example com placeholders.
+*-secret.yaml
+.env
+application-local.yml
+application-local.properties
+
+*.log
+logs/

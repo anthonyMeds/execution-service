@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: execution
+  data:
+    mongodb:
+      # Local: o docker-compose deste repositorio. Em producao: a connection
+      # string do Atlas, injetada por Secret do Kubernetes, nunca commitada.
+      uri: ${MONGODB_URI:mongodb://localhost:27017/oficina_execution}
+      auto-index-creation: true
+
+server:
+  port: ${SERVER_PORT:8080}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+
+logging:
+  level:
+    br.com.oficina.execution: INFO
+  pattern:
+    # O correlationId sai em toda linha de log, que e o que permite seguir uma OS
+    # atravessando os tres servicos no New Relic.
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%X{correlationId:-}] %logger{36} - %msg%n"

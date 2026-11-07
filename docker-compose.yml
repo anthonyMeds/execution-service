@@ -1,0 +1,15 @@
+# Ambiente local: sobe so o Mongo. O servico roda pela IDE apontando para ele.
+# Assim nao e preciso ter o Learner Lab de pe para desenvolver.
+services:
+  mongo:
+    image: mongo:7
+    container_name: oficina-execution-mongo
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: oficina_execution
+    volumes:
+      - mongo-dados:/data/db
+
+volumes:
+  mongo-dados:
