@@ -57,6 +57,13 @@ jobs:
       - name: Aplicar manifests
         run: |
           kubectl apply -f k8s/06-mongodb.yaml
+          # O Instrumentation precisa existir antes do pod subir, senao o agent nao e injetado.
+          # Sem o New Relic instalado no cluster o CRD nao existe: avisa e segue sem APM.
+          if kubectl get crd instrumentations.newrelic.com >/dev/null 2>&1; then
+            kubectl apply -f k8s/07-newrelic-instrumentation.yaml
+          else
+            echo "::warning::New Relic nao instalado no cluster: execution-service sobe sem APM."
+          fi
           kubectl apply -f k8s/01-configmap.yaml
           kubectl apply -f k8s/03-deployment.yaml
           kubectl apply -f k8s/04-service-loadbalancer.yaml

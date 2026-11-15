@@ -10,6 +10,10 @@ jobs:
   build:
     name: Build, testes, cobertura e qualidade
     runs-on: ubuntu-latest
+    # No nivel do job: o "if" de um passo nao enxerga o env do proprio passo,
+    # entao o SONAR_TOKEN precisa estar aqui para o passo do Sonar decidir se roda.
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -45,7 +49,6 @@ jobs:
       - name: Analise do SonarQube
         if: env.SONAR_TOKEN != ''
         env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         # O plugin e chamado pelas coordenadas completas, sem estar declarado no
         # pom: assim ele so e baixado aqui, e nao em todo build local.

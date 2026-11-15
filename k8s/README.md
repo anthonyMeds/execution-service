@@ -17,11 +17,13 @@ credenciais no `rabbitmq-secret`). Por isso a ordem importa:
 | `04-service-loadbalancer.yaml` | exposto para o API Gateway (rota `/execution/v1`) |
 | `05-hpa.yaml` | escala de 1 a 3 pods por CPU (precisa do metrics-server) |
 | `06-mongodb.yaml` | MongoDB dentro do cluster, sem volume persistente |
+| `07-newrelic-instrumentation.yaml` | injecao do agent Java do New Relic (so com o New Relic instalado no cluster) |
 
 ## Aplicar a mao
 
 ```bash
 kubectl apply -f k8s/06-mongodb.yaml
+kubectl apply -f k8s/07-newrelic-instrumentation.yaml   # antes do deployment
 kubectl apply -f k8s/01-configmap.yaml
 kubectl apply -f k8s/03-deployment.yaml
 kubectl apply -f k8s/04-service-loadbalancer.yaml

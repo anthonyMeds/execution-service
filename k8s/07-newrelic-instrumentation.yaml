@@ -1,0 +1,19 @@
+# Injecao automatica do agent Java do New Relic no execution-service.
+#
+# O k8s-agents-operator (instalado pelo oficina-kubernetes, chart nri-bundle) so injeta o agent nos
+# pods que algum Instrumentation seleciona. Os do OS Service e do Billing selecionam so os pods
+# deles, entao o execution precisa do proprio. A anotacao inject-java fica no 03-deployment.yaml.
+# A license key vem do Secret newrelic-license do namespace oficina (chave new_relic_license_key).
+apiVersion: newrelic.com/v1beta3
+kind: Instrumentation
+metadata:
+  name: execution-service-java
+  namespace: oficina
+spec:
+  agent:
+    language: java
+    image: newrelic/newrelic-java-init:latest
+  licenseKeySecret: newrelic-license
+  podLabelSelector:
+    matchLabels:
+      app.kubernetes.io/name: execution-service
