@@ -2,6 +2,7 @@ package br.com.oficina.execution.messaging;
 
 import java.time.Instant;
 import java.util.Map;
+import java.util.UUID;
 
 import org.slf4j.MDC;
 
@@ -22,24 +23,37 @@ import br.com.oficina.execution.model.Execucao;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record Envelope(
-		String sagaId,
+		String messageId,
 		String tipo,
+		String sagaId,
 		Long ordemServicoId,
 		String codigoOrdemServico,
 		String correlationId,
 		Instant ocorridoEm,
+		Integer versao,
 		Map<String, Object> dados
 ) {
 
-	/** Monta o envelope de um evento sobre esta execucao. */
+	/** Versao do formato do envelope, igual nos tres servicos. */
+	public static final int VERSAO_ATUAL = 1;
+
+	/**
+	 * Monta o envelope de um evento sobre esta execucao.
+	 *
+	 * O sagaId e devolvido exatamente como chegou no comando: e por ele que o OS
+	 * Service sabe a qual ciclo da OS o evento pertence. O messageId e novo a cada
+	 * evento; o OS Service usa para descartar a mesma mensagem entregue duas vezes.
+	 */
 	public static Envelope de(Execucao execucao, String tipo, Map<String, Object> dados) {
 		return new Envelope(
-				execucao.getSagaId(),
+				UUID.randomUUID().toString(),
 				tipo,
+				execucao.getSagaId(),
 				execucao.getOrdemServicoId(),
 				execucao.getCodigoOrdemServico(),
 				MDC.get(CorrelationIdFilter.MDC_KEY),
 				Instant.now(),
+				VERSAO_ATUAL,
 				dados);
 	}
 }

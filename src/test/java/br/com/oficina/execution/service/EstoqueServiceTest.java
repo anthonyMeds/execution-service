@@ -18,6 +18,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import br.com.oficina.execution.model.ItemEmFalta;
 import br.com.oficina.execution.model.MovimentacaoEstoque;
 import br.com.oficina.execution.model.PecaRequisitada;
 import br.com.oficina.execution.model.TipoMovimentacao;
@@ -97,20 +98,20 @@ class EstoqueServiceTest {
 	void reservaComSaldo() {
 		saldoDoItem55(10);
 
-		List<Long> emFalta = estoqueService.reservar("saga-1", quatroPastilhas);
+		List<ItemEmFalta> emFalta = estoqueService.reservar("saga-1", quatroPastilhas);
 
 		assertTrue(emFalta.isEmpty());
 		assertEquals(TipoMovimentacao.RESERVA, movimentacaoGravada().getTipo());
 	}
 
 	@Test
-	@DisplayName("sem saldo, nao reserva e devolve o item que faltou")
+	@DisplayName("sem saldo, nao reserva e devolve o item que faltou, com quanto faltava")
 	void reservaSemSaldo() {
 		saldoDoItem55(1);
 
-		List<Long> emFalta = estoqueService.reservar("saga-1", quatroPastilhas);
+		List<ItemEmFalta> emFalta = estoqueService.reservar("saga-1", quatroPastilhas);
 
-		assertEquals(List.of(55L), emFalta);
+		assertEquals(List.of(new ItemEmFalta(55L, 4, 1)), emFalta);
 		verify(movimentacaoRepository, never()).save(any());
 	}
 
@@ -120,7 +121,7 @@ class EstoqueServiceTest {
 		when(movimentacaoRepository.existsByReferenciaAndItemIdAndTipo("saga-1", 55L, TipoMovimentacao.RESERVA))
 				.thenReturn(true);
 
-		List<Long> emFalta = estoqueService.reservar("saga-1", quatroPastilhas);
+		List<ItemEmFalta> emFalta = estoqueService.reservar("saga-1", quatroPastilhas);
 
 		assertTrue(emFalta.isEmpty());
 		verify(movimentacaoRepository, never()).save(any());

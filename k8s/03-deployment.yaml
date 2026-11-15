@@ -18,8 +18,8 @@ spec:
         app.kubernetes.io/name: execution-service
         app.kubernetes.io/component: api
       annotations:
-        # Mesma instrumentacao automatica do New Relic usada na Fase 3: o
-        # k8s-agents-operator injeta o APM agent sem tocar no Dockerfile.
+        # O k8s-agents-operator do New Relic injeta o agent Java, como no OS
+        # Service e no Billing. Nada muda no Dockerfile.
         instrumentation.newrelic.com/inject-java: "true"
     spec:
       containers:
@@ -30,17 +30,25 @@ spec:
             - name: http
               containerPort: 8080
           env:
-            - name: NEW_RELIC_APP_NAME
-              value: "execution-service"
-            - name: NEW_RELIC_LABELS
-              value: "env:aws-academy;repo:execution-service"
+            # Mesmas credenciais que o OS Service e o RabbitMQ usam: uma fonte so.
+            - name: SPRING_RABBITMQ_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: RABBITMQ_DEFAULT_USER
+            - name: SPRING_RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: RABBITMQ_DEFAULT_PASS
           envFrom:
             - configMapRef:
                 name: execution-config
+            # Opcional: so existe se for usar o Atlas (ver 02-secret.yaml.example).
+            # Vem depois do ConfigMap, entao o MONGODB_URI daqui vence.
             - secretRef:
                 name: execution-secret
-          # O actuator expoe probes dedicados; nao usamos um endpoint de
-          # negocio como health check.
+                optional: true
           readinessProbe:
             httpGet:
               path: /actuator/health/readiness

@@ -100,9 +100,25 @@ servicos, as pecas e o historico dentro dele. Em SQL seriam quatro tabelas.
 entradas, reservas e estornos. Evita atualizar o mesmo registro a partir de
 varias OS e deixa o historico completo de graca.
 
-**RabbitMQ, com a porta aberta para SNS + SQS.** O Rabbit sobe no
-`docker compose`, entao o fluxo dos tres servicos pode ser testado sem AWS.
-A tecnologia fica atras da propriedade `oficina.mensageria.tipo`:
+**RabbitMQ, o mesmo broker do OS Service e do Billing.** Os tres servicos usam a
+mesma topologia: cada um publica no proprio exchange, e a routing key e o nome
+da mensagem.
+
+| Exchange | Quem publica | O que este servico faz |
+| --- | --- | --- |
+| `os.eventos` | OS Service | le `EnfileirarExecucao` e `CancelarExecucao` pela fila `oficina-execution-comandos` |
+| `execucao.eventos` | este servico | publica os 5 eventos; a fila `oficina-os-eventos` do OS Service esta ligada aqui |
+
+O envelope e o mesmo dos tres (`messageId`, `tipo`, `sagaId`, `ordemServicoId`,
+`codigoOrdemServico`, `correlationId`, `ocorridoEm`, `versao`, `dados`). O `sagaId`
+e devolvido exatamente como chegou: e por ele que o OS Service sabe a que ciclo
+da OS o evento pertence. O contrato completo esta em
+`oficina-os-service/docs/alinhamento-contrato-billing-e-execucao.md`.
+
+Por que nao SNS + SQS: o OS Service e o Billing ja estavam prontos e testados em
+RabbitMQ, e trocar so este servico quebraria a Saga. O Rabbit tambem roda no
+`docker compose`, o que permite testar os tres juntos sem AWS. A troca continua
+possivel, isolada no pacote `messaging`, pela propriedade `oficina.mensageria.tipo`:
 
 | Valor | O que acontece |
 | --- | --- |
@@ -111,7 +127,14 @@ A tecnologia fica atras da propriedade `oficina.mensageria.tipo`:
 
 Para trocar por SNS + SQS: criar `SqsEventoPublisher` (implementando
 `EventoPublisher`) e um listener que chame `ComandoHandler.tratar(json)`, os
-dois com `havingValue = "sqs"`. Nada fora do pacote `messaging` muda.
+dois com `havingValue = "sqs"`. Nada fora do pacote `messaging` muda -- mas o OS
+Service e o Billing teriam de trocar junto.
+
+**Trace distribuido.** Ao receber um comando, o listener guarda os cabecalhos
+`traceparent`, `tracestate` e `newrelic`; o evento publicado em resposta leva os
+mesmos valores. Assim o New Relic mostra um trace so, do OS Service ate aqui e de
+volta. O nome da aplicacao no New Relic e `oficina-execucao`, o que o dashboard
+do OS Service espera.
 
 **Mensagem com erro vai para a dead-letter.** Se o processamento de um comando
 falha, a mensagem nao volta para a fila (daria o mesmo erro para sempre): vai
@@ -120,6 +143,8 @@ para `oficina-execution-comandos-dlq`, onde fica guardada para investigacao.
 ## Rodando local
 
 Pre-requisitos: Java 21, Maven e Docker.
+
+Este servico sozinho:
 
 ```bash
 docker compose up -d        # Mongo e RabbitMQ
@@ -133,8 +158,16 @@ $env:OFICINA_MENSAGERIA_TIPO = "rabbit"
 mvn spring-boot:run
 ```
 
-O passo a passo completo de teste, com as mensagens prontas, esta em
-[docs/roteiro-validacao-fase4.md](docs/roteiro-validacao-fase4.md).
+Os tres servicos juntos, com um RabbitMQ so (as pastas `os-service` e
+`billing-service` precisam estar ao lado desta):
+
+```bash
+cd ambiente-local
+docker compose --profile apps up -d --build   # OS :8080, Billing :8081, Execution :8082
+```
+
+O passo a passo completo, incluindo como simular o Mercado Pago localmente, esta
+em [docs/roteiro-validacao-fase4.md](docs/roteiro-validacao-fase4.md).
 
 ## API
 
@@ -183,16 +216,18 @@ _Pendente: rodar `mvn verify` e salvar o print em `docs/evidencias/cobertura.png
 
 ## Deploy
 
-Manifests em [k8s/](k8s/). O pipeline `.github/workflows/deploy.yml` gera a
-imagem, publica no Docker Hub e aplica no EKS depois que o CI passa na `main`.
-A observabilidade e a mesma da Fase 3: o Deployment tem a anotacao que faz o
-operador do New Relic injetar o agente.
+Manifests em [k8s/](k8s/), no namespace `oficina`, usando o RabbitMQ que o OS
+Service implanta (credenciais do `rabbitmq-secret`) e um MongoDB dentro do
+cluster. O pipeline `.github/workflows/deploy.yml` gera a imagem, publica no
+Docker Hub e aplica no EKS depois que o CI passa na `main`. O agent do New Relic
+e injetado pelo operador, como nos outros dois servicos.
+
+Ordem no cluster: OS Service (traz o RabbitMQ), Billing, e este servico **antes de
+qualquer OS ser aprovada** -- a fila dele so existe depois que ele sobe.
 
 ## O que falta
 
-- [ ] Conta no MongoDB Atlas e Secret com a connection string
-- [ ] RabbitMQ no cluster (branch `feat/rabbitmq-mensageria` do `oficina-kubernets`)
-- [ ] Rota no API Gateway (branch `feat/rota-execution-service` do `oficina-lambda`)
 - [ ] Print da cobertura em `docs/evidencias/`
 - [ ] Proteger a branch `main` (PR obrigatorio e CI como checagem)
-- [ ] Teste de ponta a ponta com o OS Service e o Billing
+- [ ] Rota `/execution/v1` no API Gateway (branch `feat/rota-execution-service` do `oficina-lambda`)
+- [ ] Deploy no EKS e o trace no New Relic, para o video

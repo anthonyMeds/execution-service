@@ -13,6 +13,7 @@ import br.com.oficina.execution.messaging.Envelope;
 import br.com.oficina.execution.messaging.EventoPublisher;
 import br.com.oficina.execution.messaging.TipoEvento;
 import br.com.oficina.execution.model.Execucao;
+import br.com.oficina.execution.model.ItemEmFalta;
 import br.com.oficina.execution.model.PecaRequisitada;
 import br.com.oficina.execution.model.ServicoExecucao;
 import br.com.oficina.execution.model.StatusExecucao;
@@ -59,9 +60,9 @@ public class ExecucaoService {
 
 		Execucao execucao = new Execucao(sagaId, ordemServicoId, codigoOrdemServico, servicos, pecas);
 
-		List<Long> itensEmFalta = estoqueService.reservar(sagaId, execucao.getPecas());
+		List<ItemEmFalta> itensEmFalta = estoqueService.reservar(sagaId, execucao.getPecas());
 		if (!itensEmFalta.isEmpty()) {
-			execucao.aguardarItens(itensEmFalta);
+			execucao.aguardarItens(idsDe(itensEmFalta));
 		}
 
 		Execucao salva = execucaoRepository.save(execucao);
@@ -79,10 +80,10 @@ public class ExecucaoService {
 		// Se a execucao estava esperando peca, tenta reservar de novo: a peca
 		// pode ter chegado. O que ja estava reservado nao e reservado outra vez.
 		if (execucao.getStatus().aguardando()) {
-			List<Long> itensEmFalta = estoqueService.reservar(execucao.getSagaId(), execucao.getPecas());
+			List<ItemEmFalta> itensEmFalta = estoqueService.reservar(execucao.getSagaId(), execucao.getPecas());
 			if (!itensEmFalta.isEmpty()) {
 				throw new TransicaoInvalidaException(
-						"ainda faltam em estoque os itens %s".formatted(itensEmFalta));
+						"ainda faltam em estoque os itens %s".formatted(idsDe(itensEmFalta)));
 			}
 		}
 
@@ -173,6 +174,10 @@ public class ExecucaoService {
 	/** A fila da oficina: quem ainda nao comecou, do mais antigo para o mais novo. */
 	public List<Execucao> listarFila() {
 		return execucaoRepository.findByStatusInOrderByCriadaEmAsc(STATUS_DA_FILA);
+	}
+
+	private static List<Long> idsDe(List<ItemEmFalta> itens) {
+		return itens.stream().map(ItemEmFalta::itemId).toList();
 	}
 
 	private void publicar(Execucao execucao, String tipo, Map<String, Object> dados) {

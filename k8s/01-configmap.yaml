@@ -5,9 +5,22 @@ metadata:
   namespace: oficina
 data:
   SERVER_PORT: "8080"
+  ENVIRONMENT: "hml"
 
-  # No cluster a mensageria e de verdade. O broker e o RabbitMQ do namespace
-  # oficina, criado pelo repositorio oficina-kubernets (k8s/mensageria/).
+  # Mensageria: o RabbitMQ do namespace oficina, implantado pelo OS Service
+  # (StatefulSet e Service "rabbitmq"). O usuario e a senha vem do rabbitmq-secret,
+  # no Deployment.
   OFICINA_MENSAGERIA_TIPO: "rabbit"
-  RABBITMQ_HOST: "rabbitmq.oficina"
-  RABBITMQ_PORT: "5672"
+  SPRING_RABBITMQ_HOST: "rabbitmq"
+  SPRING_RABBITMQ_PORT: "5672"
+
+  # Banco: o MongoDB de 06-mongodb.yaml. Para usar o MongoDB Atlas, defina
+  # MONGODB_URI no execution-secret, que tem precedencia sobre este valor.
+  MONGODB_URI: "mongodb://mongodb:27017/oficina_execution"
+
+  # New Relic (agent injetado pelo operator). O nome e o que o dashboard do OS
+  # Service espera para o trace distribuido entre os tres servicos.
+  NEW_RELIC_APP_NAME: "oficina-execucao"
+  NEW_RELIC_LABELS: "env:aws-academy;repo:execution-service;servico:execucao"
+  NEW_RELIC_DISTRIBUTED_TRACING_ENABLED: "true"
+  NEW_RELIC_APPLICATION_LOGGING_FORWARDING_ENABLED: "true"

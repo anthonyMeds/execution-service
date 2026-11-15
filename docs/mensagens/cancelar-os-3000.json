@@ -1,8 +1,10 @@
 {
   "properties": {
-    "content_type": "application/json"
+    "content_type": "application/json",
+    "message_id": "70476b7a-72c0-5d67-b765-dc11bbc0eb00",
+    "type": "CancelarExecucao"
   },
-  "routing_key": "execution.CancelarExecucao",
-  "payload": "{\"sagaId\": \"saga-3000\", \"tipo\": \"CancelarExecucao\", \"ordemServicoId\": 3000, \"codigoOrdemServico\": \"OS-2026-003000\", \"correlationId\": \"teste-manual-cancelar\", \"ocorridoEm\": \"2026-11-12T12:05:00Z\", \"dados\": {\"motivo\": \"cliente desistiu\"}}",
+  "routing_key": "CancelarExecucao",
+  "payload": "{\"messageId\": \"70476b7a-72c0-5d67-b765-dc11bbc0eb00\", \"tipo\": \"CancelarExecucao\", \"sagaId\": \"d00fb815-e9d1-59e4-a086-624b1894e8a8\", \"ordemServicoId\": 3000, \"codigoOrdemServico\": \"OS-2026-003000\", \"correlationId\": \"teste-manual-cancelar\", \"ocorridoEm\": \"2026-11-15T12:00:00Z\", \"versao\": 1, \"dados\": {\"motivo\": \"cliente desistiu\"}}",
   "payload_encoding": "string"
 }

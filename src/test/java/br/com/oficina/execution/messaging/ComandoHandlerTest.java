@@ -75,6 +75,33 @@ class ComandoHandlerTest {
 	}
 
 	@Test
+	@DisplayName("aceita o envelope exatamente como o OS Service publica (messageId, versao, sagaId em UUID)")
+	void envelopeDoOsService() {
+		// Copiado do formato de EnvelopeMensagem do oficina-os-service
+		handler.tratar("""
+				{
+				  "messageId": "6f1c2b9e-3d47-4a8e-9b1f-2c5d7e8a9b01",
+				  "tipo": "EnfileirarExecucao",
+				  "sagaId": "3f2a9c1e-5b7d-4e8a-9c21-7d4e5f6a8b90",
+				  "ordemServicoId": 1042,
+				  "codigoOrdemServico": "OS-2026-000123",
+				  "correlationId": "8c21f4b0-11de-4a77-9b03-5c2e7a19d4f6",
+				  "ocorridoEm": "2026-11-15T14:35:02.123456Z",
+				  "versao": 1,
+				  "dados": {
+				    "servicos": [ { "servicoId": 7, "nome": "Troca de pastilhas" } ],
+				    "itens": [ { "itemId": 55, "quantidade": 4 } ]
+				  }
+				}
+				""");
+
+		verify(execucaoService).enfileirar(
+				eq("3f2a9c1e-5b7d-4e8a-9c21-7d4e5f6a8b90"), eq(1042L), eq("OS-2026-000123"),
+				servicosCaptor.capture(), pecasCaptor.capture());
+		assertEquals("Troca de pastilhas", servicosCaptor.getValue().get(0).getNome());
+	}
+
+	@Test
 	@DisplayName("EnfileirarExecucao sem itens: lista vazia, nao erro")
 	void enfileirarSemItens() {
 		handler.tratar("""
@@ -138,7 +165,8 @@ class ComandoHandlerTest {
 	@Test
 	@DisplayName("o publicador de log aceita qualquer evento sem precisar de broker")
 	void publicadorDeLog() {
-		Envelope envelope = new Envelope("saga-1", TipoEvento.EXECUCAO_INICIADA, 1042L, "OS-1", null, null, Map.of());
+		Envelope envelope = new Envelope(
+				"msg-1", TipoEvento.EXECUCAO_INICIADA, "saga-1", 1042L, "OS-1", null, null, Envelope.VERSAO_ATUAL, Map.of());
 
 		assertDoesNotThrow(() -> new LogEventoPublisher().publicar(envelope));
 	}

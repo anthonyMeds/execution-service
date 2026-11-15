@@ -1,0 +1,67 @@
+# MongoDB do execution-service, dentro do cluster.
+#
+# Sem volume persistente, como o RabbitMQ do OS Service: o cluster do Learner Lab
+# nao tem o driver EBS CSI. Se o pod for recriado, os dados se perdem -- aceitavel
+# num ambiente de avaliacao que e recriado a cada sessao. Para guardar entre
+# sessoes, use o MongoDB Atlas (ver 02-secret.yaml.example).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongodb
+  namespace: oficina
+  labels:
+    app.kubernetes.io/name: mongodb
+    app.kubernetes.io/component: banco
+    app.kubernetes.io/part-of: execution-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mongodb
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: mongodb
+        app.kubernetes.io/component: banco
+    spec:
+      containers:
+        - name: mongodb
+          image: mongo:7
+          ports:
+            - name: mongodb
+              containerPort: 27017
+          readinessProbe:
+            exec:
+              command: ["mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          volumeMounts:
+            - name: dados
+              mountPath: /data/db
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+      volumes:
+        - name: dados
+          emptyDir: {}
+---
+# ClusterIP: so os pods do namespace alcancam o banco.
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb
+  namespace: oficina
+  labels:
+    app.kubernetes.io/name: mongodb
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: mongodb
+  ports:
+    - name: mongodb
+      port: 27017
+      targetPort: mongodb

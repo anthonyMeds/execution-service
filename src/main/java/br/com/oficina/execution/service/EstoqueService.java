@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
+import br.com.oficina.execution.model.ItemEmFalta;
 import br.com.oficina.execution.model.MovimentacaoEstoque;
 import br.com.oficina.execution.model.PecaRequisitada;
 import br.com.oficina.execution.model.TipoMovimentacao;
@@ -45,20 +46,21 @@ public class EstoqueService {
 	}
 
 	/**
-	 * Separa as pecas de uma OS. Devolve os ids das pecas que NAO tinham saldo;
-	 * lista vazia quer dizer que tudo foi reservado.
+	 * Separa as pecas de uma OS. Devolve as pecas que NAO tinham saldo, com
+	 * quanto faltava; lista vazia quer dizer que tudo foi reservado.
 	 *
 	 * Pode ser chamado de novo para a mesma saga: o que ja estava reservado e
 	 * pulado, e so se tenta o que faltava.
 	 */
-	public List<Long> reservar(String sagaId, List<PecaRequisitada> pecas) {
-		List<Long> emFalta = new ArrayList<>();
+	public List<ItemEmFalta> reservar(String sagaId, List<PecaRequisitada> pecas) {
+		List<ItemEmFalta> emFalta = new ArrayList<>();
 		for (PecaRequisitada peca : pecas) {
 			if (jaRegistrada(sagaId, peca.itemId(), TipoMovimentacao.RESERVA)) {
 				continue;
 			}
-			if (saldoDe(peca.itemId()) < peca.quantidade()) {
-				emFalta.add(peca.itemId());
+			int saldo = saldoDe(peca.itemId());
+			if (saldo < peca.quantidade()) {
+				emFalta.add(new ItemEmFalta(peca.itemId(), peca.quantidade(), Math.max(saldo, 0)));
 				continue;
 			}
 			registrar(sagaId, peca.itemId(), peca.quantidade(), TipoMovimentacao.RESERVA);

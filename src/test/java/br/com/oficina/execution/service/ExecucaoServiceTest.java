@@ -1,6 +1,7 @@
 package br.com.oficina.execution.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -26,6 +27,7 @@ import br.com.oficina.execution.messaging.Envelope;
 import br.com.oficina.execution.messaging.EventoPublisher;
 import br.com.oficina.execution.messaging.TipoEvento;
 import br.com.oficina.execution.model.Execucao;
+import br.com.oficina.execution.model.ItemEmFalta;
 import br.com.oficina.execution.model.PecaRequisitada;
 import br.com.oficina.execution.model.ServicoExecucao;
 import br.com.oficina.execution.model.StatusExecucao;
@@ -40,6 +42,7 @@ class ExecucaoServiceTest {
 
 	private static final Long OS = 1042L;
 	private static final List<PecaRequisitada> PECAS = List.of(new PecaRequisitada(55L, 4));
+	private static final ItemEmFalta FALTA_PASTILHA = new ItemEmFalta(55L, 4, 1);
 
 	@Mock
 	private ExecucaoRepository execucaoRepository;
@@ -91,14 +94,17 @@ class ExecucaoServiceTest {
 	@DisplayName("enfileirar sem estoque: fica AGUARDANDO_ITENS e avisa o OS Service")
 	void enfileirarSemEstoque() {
 		salvarDevolveOQueRecebeu();
-		when(estoqueService.reservar("saga-1", PECAS)).thenReturn(List.of(55L));
+		when(estoqueService.reservar("saga-1", PECAS)).thenReturn(List.of(FALTA_PASTILHA));
 
 		Execucao execucao = execucaoService.enfileirar("saga-1", OS, "OS-2026-000123", servicos(), PECAS);
 
 		assertEquals(StatusExecucao.AGUARDANDO_ITENS, execucao.getStatus());
 		Envelope evento = eventoPublicado();
 		assertEquals(TipoEvento.EXECUCAO_AGUARDANDO_ITENS, evento.tipo());
-		assertEquals(List.of(55L), evento.dados().get("itensEmFalta"));
+		assertEquals(List.of(FALTA_PASTILHA), evento.dados().get("itensEmFalta"));
+		assertEquals("saga-1", evento.sagaId());
+		assertNotNull(evento.messageId());
+		assertEquals(Envelope.VERSAO_ATUAL, evento.versao().intValue());
 	}
 
 	@Test
@@ -135,7 +141,7 @@ class ExecucaoServiceTest {
 		Execucao aguardando = execucaoNaFila();
 		aguardando.aguardarItens(List.of(55L));
 		existeNoBanco(aguardando);
-		when(estoqueService.reservar("saga-1", PECAS)).thenReturn(List.of(55L));
+		when(estoqueService.reservar("saga-1", PECAS)).thenReturn(List.of(FALTA_PASTILHA));
 
 		assertThrows(TransicaoInvalidaException.class, () -> execucaoService.iniciar(OS, "Carlos"));
 

@@ -1,9 +1,9 @@
-# Ambiente local completo: Mongo e RabbitMQ. Com isto da para rodar o fluxo
-# inteiro sem AWS e sem o Learner Lab de pe.
+# Para testar SO o execution-service: Mongo e RabbitMQ.
+# Para os tres servicos juntos, use ambiente-local/docker-compose.yml.
 services:
   mongo:
     image: mongo:7
-    container_name: oficina-execution-mongo
+    container_name: execution-mongo
     ports:
       - "27017:27017"
     environment:
@@ -12,16 +12,16 @@ services:
       - mongo-dados:/data/db
 
   rabbitmq:
-    image: rabbitmq:3.13-management
-    container_name: oficina-rabbitmq
+    image: rabbitmq:3.13-management-alpine
+    container_name: execution-rabbitmq
     ports:
       - "5672:5672"
-      # Console web em http://localhost:15672 (oficina / oficina).
-      # E por onde da para publicar um comando a mao e ver a fila encher.
+      # Painel em http://localhost:15672 (guest / guest), as mesmas credenciais
+      # do OS Service e do Billing.
       - "15672:15672"
     environment:
-      RABBITMQ_DEFAULT_USER: oficina
-      RABBITMQ_DEFAULT_PASS: oficina
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 10s

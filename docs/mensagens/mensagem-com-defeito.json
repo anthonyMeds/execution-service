@@ -2,7 +2,7 @@
   "properties": {
     "content_type": "application/json"
   },
-  "routing_key": "execution.EnfileirarExecucao",
+  "routing_key": "EnfileirarExecucao",
   "payload": "isto nao e um JSON valido",
   "payload_encoding": "string"
 }

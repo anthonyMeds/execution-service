@@ -13,11 +13,14 @@ spring:
       # Cria os indices unicos declarados nas classes de model (@Indexed).
       auto-index-creation: true
 
+  # O mesmo broker do OS Service e do Billing. No cluster, os valores vem das
+  # variaveis SPRING_RABBITMQ_HOST, SPRING_RABBITMQ_USERNAME e SPRING_RABBITMQ_PASSWORD,
+  # que o Spring aplica por cima destes automaticamente.
   rabbitmq:
-    host: ${RABBITMQ_HOST:localhost}
-    port: ${RABBITMQ_PORT:5672}
-    username: ${RABBITMQ_USER:oficina}
-    password: ${RABBITMQ_PASSWORD:oficina}
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
 
 oficina:
   mensageria:

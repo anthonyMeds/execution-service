@@ -3,7 +3,7 @@ FROM maven:3.9-eclipse-temurin-21 AS build
 WORKDIR /app
 # O pom entra sozinho primeiro para a camada de dependencias ser reaproveitada
 # enquanto so o codigo muda.
-COPY pom.xml .
+COPY pom.xml lombok.config ./
 RUN mvn -B -q dependency:go-offline
 COPY src ./src
 RUN mvn -B -q clean package -DskipTests

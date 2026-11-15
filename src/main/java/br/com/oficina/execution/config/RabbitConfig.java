@@ -1,7 +1,8 @@
 package br.com.oficina.execution.config;
 
-import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
+import org.springframework.amqp.core.Declarables;
+import org.springframework.amqp.core.DirectExchange;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.QueueBuilder;
 import org.springframework.amqp.core.TopicExchange;
@@ -9,53 +10,61 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import br.com.oficina.execution.messaging.TipoComando;
+
 /**
- * Cria no RabbitMQ o que este servico precisa. So vale quando
+ * Cria no RabbitMQ o que este servico precisa, na mesma topologia do OS Service
+ * e do Billing: cada servico publica no proprio exchange, e a routing key e o
+ * nome da mensagem.
+ *
+ * <pre>
+ * os.eventos (topic) --EnfileirarExecucao, CancelarExecucao--> oficina-execution-comandos
+ *                                       rejeitada --> oficina-execution-comandos-dlx --> oficina-execution-comandos-dlq
+ * execucao.eventos (topic) <-- este servico publica (routing key = tipo do evento); o OS Service consome
+ * </pre>
+ *
+ * Declarar um exchange que ja existe nao da erro (desde que com as mesmas
+ * opcoes), entao nao importa qual servico sobe primeiro. So vale com
  * oficina.mensageria.tipo=rabbit.
- *
- *   exchange oficina.comandos --(execution.#)--> fila oficina-execution-comandos
- *   exchange oficina.eventos  <-- onde este servico publica
- *
- * Os dois exchanges sao compartilhados pelos tres servicos; declarar um que ja
- * existe nao da erro, entao cada servico declara os dois ao subir.
  */
 @Configuration
 @ConditionalOnProperty(name = "oficina.mensageria.tipo", havingValue = "rabbit")
 public class RabbitConfig {
 
-	public static final String EXCHANGE_COMANDOS = "oficina.comandos";
-	public static final String EXCHANGE_EVENTOS = "oficina.eventos";
+	/** Onde o OS Service publica os comandos. */
+	public static final String EXCHANGE_OS = "os.eventos";
+
+	/** Onde este servico publica os eventos. O OS Service ja tem a fila dele ligada aqui. */
+	public static final String EXCHANGE_EXECUCAO = "execucao.eventos";
 
 	public static final String FILA_COMANDOS = "oficina-execution-comandos";
-	public static final String FILA_COMANDOS_DLQ = "oficina-execution-comandos-dlq";
+	public static final String EXCHANGE_DEAD_LETTER = FILA_COMANDOS + "-dlx";
+	public static final String FILA_COMANDOS_DLQ = FILA_COMANDOS + "-dlq";
 
 	@Bean
-	TopicExchange exchangeComandos() {
-		return new TopicExchange(EXCHANGE_COMANDOS);
-	}
+	Declarables topologiaMensageria() {
+		TopicExchange exchangeOs = new TopicExchange(EXCHANGE_OS, true, false);
+		TopicExchange exchangeExecucao = new TopicExchange(EXCHANGE_EXECUCAO, true, false);
+		DirectExchange deadLetter = new DirectExchange(EXCHANGE_DEAD_LETTER, true, false);
 
-	@Bean
-	TopicExchange exchangeEventos() {
-		return new TopicExchange(EXCHANGE_EVENTOS);
-	}
-
-	/** Para onde vai a mensagem que falhou em todas as tentativas. */
-	@Bean
-	Queue filaComandosDlq() {
-		return QueueBuilder.durable(FILA_COMANDOS_DLQ).build();
-	}
-
-	@Bean
-	Queue filaComandos() {
-		return QueueBuilder.durable(FILA_COMANDOS)
-				.withArgument("x-dead-letter-exchange", "")
-				.withArgument("x-dead-letter-routing-key", FILA_COMANDOS_DLQ)
+		// Mensagem que da erro no processamento sai da fila e vai para a DLQ, em vez
+		// de voltar e dar o mesmo erro para sempre.
+		Queue filaComandos = QueueBuilder.durable(FILA_COMANDOS)
+				.deadLetterExchange(EXCHANGE_DEAD_LETTER)
+				.deadLetterRoutingKey(FILA_COMANDOS_DLQ)
 				.build();
-	}
+		Queue filaDlq = QueueBuilder.durable(FILA_COMANDOS_DLQ).build();
 
-	/** Tudo que chegar em oficina.comandos com routing key "execution.*" cai na fila deste servico. */
-	@Bean
-	Binding bindingComandos() {
-		return BindingBuilder.bind(filaComandos()).to(exchangeComandos()).with("execution.#");
+		return new Declarables(
+				exchangeOs,
+				exchangeExecucao,
+				deadLetter,
+				filaComandos,
+				filaDlq,
+				BindingBuilder.bind(filaDlq).to(deadLetter).with(FILA_COMANDOS_DLQ),
+				// So os dois comandos destinados a execucao; o resto do que o OS publica
+				// em os.eventos (para o Billing, por exemplo) nao chega aqui.
+				BindingBuilder.bind(filaComandos).to(exchangeOs).with(TipoComando.ENFILEIRAR_EXECUCAO),
+				BindingBuilder.bind(filaComandos).to(exchangeOs).with(TipoComando.CANCELAR_EXECUCAO));
 	}
 }

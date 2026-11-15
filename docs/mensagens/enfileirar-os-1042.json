@@ -1,8 +1,10 @@
 {
   "properties": {
-    "content_type": "application/json"
+    "content_type": "application/json",
+    "message_id": "fbafd6d4-7957-521d-949a-1eef54455eda",
+    "type": "EnfileirarExecucao"
   },
-  "routing_key": "execution.EnfileirarExecucao",
-  "payload": "{\"sagaId\": \"saga-1042\", \"tipo\": \"EnfileirarExecucao\", \"ordemServicoId\": 1042, \"codigoOrdemServico\": \"OS-2026-001042\", \"correlationId\": \"teste-manual-1042\", \"ocorridoEm\": \"2026-11-12T12:00:00Z\", \"dados\": {\"servicos\": [{\"servicoId\": 7, \"nome\": \"Troca de pastilhas de freio\"}, {\"servicoId\": 3, \"nome\": \"Alinhamento\"}], \"itens\": [{\"itemId\": 55, \"quantidade\": 4}]}}",
+  "routing_key": "EnfileirarExecucao",
+  "payload": "{\"messageId\": \"fbafd6d4-7957-521d-949a-1eef54455eda\", \"tipo\": \"EnfileirarExecucao\", \"sagaId\": \"d7ab755b-b2cf-51b4-95d7-1fe30c03989a\", \"ordemServicoId\": 1042, \"codigoOrdemServico\": \"OS-2026-001042\", \"correlationId\": \"teste-manual-1042\", \"ocorridoEm\": \"2026-11-15T12:00:00Z\", \"versao\": 1, \"dados\": {\"servicos\": [{\"servicoId\": 7, \"nome\": \"Troca de pastilhas de freio\"}, {\"servicoId\": 3, \"nome\": \"Alinhamento\"}], \"itens\": [{\"itemId\": 55, \"quantidade\": 4}]}}",
   "payload_encoding": "string"
 }
