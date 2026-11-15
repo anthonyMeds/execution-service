@@ -1,0 +1,128 @@
+# Os TRES servicos da Fase 4 na mesma maquina, com UM RabbitMQ so.
+#
+# Pressupoe as tres pastas lado a lado:
+#   pos Arquitetura/
+#     os-service/         github.com/Franciscojr08/oficina-os-service
+#     billing-service/    github.com/rremiao/oficina-billing
+#     execution-service/  este repositorio
+#
+# Dois jeitos de usar (rodando de dentro de execution-service/ambiente-local):
+#   docker compose up -d                          so a infraestrutura; os servicos rodam pela IDE
+#   docker compose --profile apps up -d --build   tudo em container (a primeira vez demora)
+#
+# Antes, pare os docker compose de cada repositorio: as portas sao as mesmas.
+name: oficina-fase4
+
+x-jwt: &jwt jwt-local-secret-123456789012345678901234567890
+
+services:
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: fase4-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"   # painel: http://localhost:15672 (guest / guest)
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  postgres-os:
+    image: postgres:15-alpine
+    container_name: fase4-postgres-os
+    environment:
+      POSTGRES_DB: os_service
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d os_service"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  postgres-billing:
+    image: postgres:15-alpine
+    container_name: fase4-postgres-billing
+    environment:
+      POSTGRES_DB: billing
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d billing"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mongo:
+    image: mongo:7
+    container_name: fase4-mongo
+    ports:
+      - "27017:27017"
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  os-service:
+    profiles: [apps]
+    build: ../../os-service
+    container_name: fase4-os-service
+    depends_on:
+      postgres-os: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-os:5432/os_service
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SECURITY_JWT_SECRET: *jwt
+    restart: on-failure
+
+  billing-service:
+    profiles: [apps]
+    build: ../../billing-service
+    container_name: fase4-billing-service
+    depends_on:
+      postgres-billing: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+    ports:
+      - "8081:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-billing:5432/billing
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SECURITY_JWT_SECRET: *jwt
+      # Sem credenciais do Mercado Pago a cobranca falha e a Saga fica esperando o
+      # pagamento: use ambiente-local/simular-billing.ps1 no lugar do Mercado Pago.
+      MERCADOPAGO_ACCESS_TOKEN: ${MERCADOPAGO_ACCESS_TOKEN:-}
+      MERCADOPAGO_WEBHOOK_SECRET: ${MERCADOPAGO_WEBHOOK_SECRET:-}
+    restart: on-failure
+
+  execution-service:
+    profiles: [apps]
+    build: ..
+    container_name: fase4-execution-service
+    depends_on:
+      mongo: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+    ports:
+      - "8082:8080"
+    environment:
+      OFICINA_MENSAGERIA_TIPO: rabbit
+      SPRING_RABBITMQ_HOST: rabbitmq
+      MONGODB_URI: mongodb://mongo:27017/oficina_execution
+    restart: on-failure

@@ -1,15 +1,32 @@
-# Ambiente local: sobe so o Mongo. O servico roda pela IDE apontando para ele.
-# Assim nao e preciso ter o Learner Lab de pe para desenvolver.
+# Para testar SO o execution-service: Mongo e RabbitMQ.
+# Para os tres servicos juntos, use ambiente-local/docker-compose.yml.
 services:
   mongo:
     image: mongo:7
-    container_name: oficina-execution-mongo
+    container_name: execution-mongo
     ports:
       - "27017:27017"
     environment:
       MONGO_INITDB_DATABASE: oficina_execution
     volumes:
       - mongo-dados:/data/db
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: execution-rabbitmq
+    ports:
+      - "5672:5672"
+      # Painel em http://localhost:15672 (guest / guest), as mesmas credenciais
+      # do OS Service e do Billing.
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   mongo-dados:

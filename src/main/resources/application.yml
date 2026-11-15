@@ -1,12 +1,32 @@
 spring:
   application:
     name: execution
+
+  # Atencao: no Spring Boot 4 a conexao do Mongo fica em spring.mongodb.*
+  # (o antigo spring.data.mongodb.uri foi descontinuado e e ignorado).
+  mongodb:
+    # Local: o Mongo do docker-compose. No cluster: a URI do Atlas, vinda do
+    # Secret do Kubernetes na variavel MONGODB_URI -- nunca escrita aqui.
+    uri: ${MONGODB_URI:mongodb://localhost:27017/oficina_execution}
   data:
     mongodb:
-      # Local: o docker-compose deste repositorio. Em producao: a connection
-      # string do Atlas, injetada por Secret do Kubernetes, nunca commitada.
-      uri: ${MONGODB_URI:mongodb://localhost:27017/oficina_execution}
+      # Cria os indices unicos declarados nas classes de model (@Indexed).
       auto-index-creation: true
+
+  # O mesmo broker do OS Service e do Billing. No cluster, os valores vem das
+  # variaveis SPRING_RABBITMQ_HOST, SPRING_RABBITMQ_USERNAME e SPRING_RABBITMQ_PASSWORD,
+  # que o Spring aplica por cima destes automaticamente.
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+
+oficina:
+  mensageria:
+    # log    -> nao usa broker; os eventos so aparecem no log (padrao)
+    # rabbit -> publica e consome no RabbitMQ
+    tipo: ${OFICINA_MENSAGERIA_TIPO:log}
 
 server:
   port: ${SERVER_PORT:8080}
@@ -20,12 +40,10 @@ management:
     health:
       probes:
         enabled: true
-      show-details: never
 
 logging:
   level:
     br.com.oficina.execution: INFO
   pattern:
-    # O correlationId sai em toda linha de log, que e o que permite seguir uma OS
-    # atravessando os tres servicos no New Relic.
+    # %X{correlationId} imprime, em toda linha, o id da requisicao.
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%X{correlationId:-}] %logger{36} - %msg%n"

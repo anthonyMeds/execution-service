@@ -1,0 +1,10 @@
+{
+  "properties": {
+    "content_type": "application/json",
+    "message_id": "70173278-99f7-55d8-97a7-bd673cbfb725",
+    "type": "EnfileirarExecucao"
+  },
+  "routing_key": "EnfileirarExecucao",
+  "payload": "{\"messageId\": \"70173278-99f7-55d8-97a7-bd673cbfb725\", \"tipo\": \"EnfileirarExecucao\", \"sagaId\": \"df718a5c-52b1-54fa-abe4-e87a71811921\", \"ordemServicoId\": 2000, \"codigoOrdemServico\": \"OS-2026-002000\", \"correlationId\": \"teste-manual-2000\", \"ocorridoEm\": \"2026-11-15T12:00:00Z\", \"versao\": 1, \"dados\": {\"servicos\": [{\"servicoId\": 7, \"nome\": \"Troca de pastilhas de freio\"}, {\"servicoId\": 3, \"nome\": \"Alinhamento\"}], \"itens\": [{\"itemId\": 55, \"quantidade\": 4}, {\"itemId\": 77, \"quantidade\": 2}]}}",
+  "payload_encoding": "string"
+}

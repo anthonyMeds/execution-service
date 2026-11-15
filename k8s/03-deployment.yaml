@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: execution-service
+  namespace: oficina
+  labels:
+    app.kubernetes.io/name: execution-service
+    app.kubernetes.io/component: api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: execution-service
+      app.kubernetes.io/component: api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: execution-service
+        app.kubernetes.io/component: api
+      annotations:
+        # O k8s-agents-operator do New Relic injeta o agent Java, como no OS
+        # Service e no Billing. Nada muda no Dockerfile.
+        instrumentation.newrelic.com/inject-java: "true"
+    spec:
+      containers:
+        - name: execution-service
+          image: anthonymeds/oficina-execution:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            # Mesmas credenciais que o OS Service e o RabbitMQ usam: uma fonte so.
+            - name: SPRING_RABBITMQ_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: RABBITMQ_DEFAULT_USER
+            - name: SPRING_RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: RABBITMQ_DEFAULT_PASS
+          envFrom:
+            - configMapRef:
+                name: execution-config
+            # Opcional: so existe se for usar o Atlas (ver 02-secret.yaml.example).
+            # Vem depois do ConfigMap, entao o MONGODB_URI daqui vence.
+            - secretRef:
+                name: execution-secret
+                optional: true
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            initialDelaySeconds: 45
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            initialDelaySeconds: 75
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 6
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "500m"
+              memory: "768Mi"
