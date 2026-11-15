@@ -8,9 +8,14 @@ on:
 
 jobs:
   build:
+    name: Build, testes, cobertura e qualidade
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # O Sonar precisa do historico completo para atribuir autoria e
+          # calcular o codigo novo de um PR.
+          fetch-depth: 0
 
       - name: Configurar Java 21
         uses: actions/setup-java@v4
@@ -19,14 +24,34 @@ jobs:
           java-version: '21'
           cache: maven
 
-      # verify roda os testes e o jacoco:check. O build quebra se a cobertura
-      # ficar abaixo do minimo definido no pom.
+      # verify roda os testes unitarios, o BDD do Cucumber e o jacoco:check.
+      # O build quebra se a cobertura cair abaixo de 80%.
       - name: Build, testes e cobertura
         run: mvn -B verify
 
-      - name: Publicar relatorio de cobertura
+      - name: Publicar relatorios de cobertura e de BDD
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: jacoco
-          path: target/site/jacoco/
+          name: relatorios
+          path: |
+            target/site/jacoco/
+            target/cucumber/
+
+      # Requisito da Fase 4: validacao de qualidade no CI.
+      # Precisa dos secrets SONAR_TOKEN e SONAR_HOST_URL no repositorio.
+      # Sem SONAR_TOKEN configurado o passo e pulado, para o CI nao ficar
+      # vermelho em quem clonar o projeto sem a conta do Sonar.
+      - name: Analise do SonarQube
+        if: env.SONAR_TOKEN != ''
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        # O plugin e chamado pelas coordenadas completas, sem estar declarado no
+        # pom: assim ele so e baixado aqui, e nao em todo build local.
+        run: >
+          mvn -B org.sonarsource.scanner.maven:sonar-maven-plugin:5.1.0.4751:sonar
+          -Dsonar.projectKey=oficina-execution-service
+          -Dsonar.host.url=$SONAR_HOST_URL
+          -Dsonar.token=$SONAR_TOKEN
+          -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml

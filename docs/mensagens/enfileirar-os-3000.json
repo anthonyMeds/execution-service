@@ -1,0 +1,8 @@
+{
+  "properties": {
+    "content_type": "application/json"
+  },
+  "routing_key": "execution.EnfileirarExecucao",
+  "payload": "{\"sagaId\": \"saga-3000\", \"tipo\": \"EnfileirarExecucao\", \"ordemServicoId\": 3000, \"codigoOrdemServico\": \"OS-2026-003000\", \"correlationId\": \"teste-manual-3000\", \"ocorridoEm\": \"2026-11-12T12:00:00Z\", \"dados\": {\"servicos\": [{\"servicoId\": 7, \"nome\": \"Troca de pastilhas de freio\"}, {\"servicoId\": 3, \"nome\": \"Alinhamento\"}], \"itens\": [{\"itemId\": 55, \"quantidade\": 4}]}}",
+  "payload_encoding": "string"
+}

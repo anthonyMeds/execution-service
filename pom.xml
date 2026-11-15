@@ -3,8 +3,8 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
-	<!-- Mesmo parent e mesma versao do oficina-billing, para os dois servicos nao
-	     divergirem de Spring Boot. No Boot 4 o starter-web virou starter-webmvc. -->
+	<!-- Mesmo parent e mesma versao do oficina-billing. No Boot 4 o starter-web
+	     virou starter-webmvc. -->
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
@@ -21,9 +21,9 @@
 	<properties>
 		<java.version>21</java.version>
 		<jacoco.version>0.8.12</jacoco.version>
-		<!-- O requisito da Fase 4 e 80%. Comeca em 0 para o build passar com o
-		     esqueleto; sobe para 0.80 quando os casos de uso estiverem testados. -->
-		<jacoco.cobertura.minima>0.00</jacoco.cobertura.minima>
+		<!-- Requisito da Fase 4: cobertura minima de 80% por servico. -->
+		<jacoco.cobertura.minima>0.80</jacoco.cobertura.minima>
+		<cucumber.version>7.20.1</cucumber.version>
 	</properties>
 
 	<dependencies>
@@ -39,15 +39,34 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-validation</artifactId>
 		</dependency>
-		<!-- /actuator/health e o que o liveness e o readiness probe do Kubernetes chamam. -->
+		<!-- /actuator/health e o que os probes do Kubernetes chamam. -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-actuator</artifactId>
 		</dependency>
+		<!-- Mensageria com RabbitMQ. -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-amqp</artifactId>
+		</dependency>
+		<!-- Mesmo uso dos outros projetos do time: @Getter e @RequiredArgsConstructor. -->
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<optional>true</optional>
+		</dependency>
 
+		<!-- JUnit, Mockito e AssertJ vem neste starter. -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webmvc-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<!-- BDD: o enunciado exige ao menos um fluxo completo testado com BDD. -->
+		<dependency>
+			<groupId>io.cucumber</groupId>
+			<artifactId>cucumber-java</artifactId>
+			<version>${cucumber.version}</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
@@ -55,19 +74,45 @@
 	<build>
 		<plugins>
 			<plugin>
-				<groupId>org.springframework.boot</groupId>
-				<artifactId>spring-boot-maven-plugin</artifactId>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<annotationProcessorPaths>
+						<path>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok</artifactId>
+						</path>
+					</annotationProcessorPaths>
+				</configuration>
 			</plugin>
 
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+				<configuration>
+					<excludes>
+						<exclude>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok</artifactId>
+						</exclude>
+					</excludes>
+				</configuration>
+			</plugin>
+
+			<!-- Cobertura. O build quebra abaixo de 80%. -->
 			<plugin>
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
 				<version>${jacoco.version}</version>
 				<configuration>
+					<!-- Fora da conta: classes sem regra de negocio. DTO e
+					     estrutura de dados, config e fiacao do Spring, e as
+					     classes Rabbit* so repassam para o broker. -->
 					<excludes>
 						<exclude>**/ExecutionApplication.class</exclude>
-						<exclude>**/adapter/out/mongo/*Document*.class</exclude>
-						<exclude>**/adapter/in/web/dto/**</exclude>
+						<exclude>**/dto/**</exclude>
+						<exclude>**/config/**</exclude>
+						<exclude>**/messaging/Rabbit*.class</exclude>
 					</excludes>
 				</configuration>
 				<executions>

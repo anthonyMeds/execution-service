@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: execution-config
+  namespace: oficina
+data:
+  SERVER_PORT: "8080"
+
+  # No cluster a mensageria e de verdade. O broker e o RabbitMQ do namespace
+  # oficina, criado pelo repositorio oficina-kubernets (k8s/mensageria/).
+  OFICINA_MENSAGERIA_TIPO: "rabbit"
+  RABBITMQ_HOST: "rabbitmq.oficina"
+  RABBITMQ_PORT: "5672"

@@ -1,5 +1,5 @@
-# Ambiente local: sobe so o Mongo. O servico roda pela IDE apontando para ele.
-# Assim nao e preciso ter o Learner Lab de pe para desenvolver.
+# Ambiente local completo: Mongo e RabbitMQ. Com isto da para rodar o fluxo
+# inteiro sem AWS e sem o Learner Lab de pe.
 services:
   mongo:
     image: mongo:7
@@ -10,6 +10,23 @@ services:
       MONGO_INITDB_DATABASE: oficina_execution
     volumes:
       - mongo-dados:/data/db
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: oficina-rabbitmq
+    ports:
+      - "5672:5672"
+      # Console web em http://localhost:15672 (oficina / oficina).
+      # E por onde da para publicar um comando a mao e ver a fila encher.
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: oficina
+      RABBITMQ_DEFAULT_PASS: oficina
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   mongo-dados:

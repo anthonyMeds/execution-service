@@ -1,0 +1,8 @@
+{
+  "properties": {
+    "content_type": "application/json"
+  },
+  "routing_key": "execution.CancelarExecucao",
+  "payload": "{\"sagaId\": \"saga-3000\", \"tipo\": \"CancelarExecucao\", \"ordemServicoId\": 3000, \"codigoOrdemServico\": \"OS-2026-003000\", \"correlationId\": \"teste-manual-cancelar\", \"ocorridoEm\": \"2026-11-12T12:05:00Z\", \"dados\": {\"motivo\": \"cliente desistiu\"}}",
+  "payload_encoding": "string"
+}

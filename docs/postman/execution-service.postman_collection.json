@@ -1,0 +1,152 @@
+{
+  "info": {
+    "name": "Oficina - Execution Service",
+    "description": "API do microsservico de execucao de ordens de servico. Fase 4 do Tech Challenge FIAP SOAT.\n\nA entrada da saga (EnfileirarExecucao) nao esta aqui porque chega por mensagem, nao por HTTP.\n\nUse a variavel baseUrl para alternar entre local e o API Gateway.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080", "type": "string" },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "ordemServicoId", "value": "1042", "type": "string" },
+    { "key": "servicoId", "value": "7", "type": "string" },
+    { "key": "itemId", "value": "55", "type": "string" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [ { "key": "token", "value": "{{token}}", "type": "string" } ]
+  },
+  "item": [
+    {
+      "name": "Execucao",
+      "item": [
+        {
+          "name": "Consultar fila",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/execution/v1/execucoes/fila", "host": ["{{baseUrl}}"], "path": ["execution","v1","execucoes","fila"] },
+            "description": "Execucoes aguardando mecanico, mais antiga primeiro."
+          },
+          "event": [ { "listen": "test", "script": { "exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));",
+            "pm.test('devolve uma lista', () => pm.expect(pm.response.json()).to.be.an('array'));"
+          ] } } ]
+        },
+        {
+          "name": "Consultar execucao de uma OS",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/execution/v1/execucoes/{{ordemServicoId}}", "host": ["{{baseUrl}}"], "path": ["execution","v1","execucoes","{{ordemServicoId}}"] },
+            "description": "Estado completo: status, mecanico, cada servico com sua duracao."
+          },
+          "event": [ { "listen": "test", "script": { "exec": [
+            "pm.test('200 ou 404', () => pm.expect([200,404]).to.include(pm.response.code));"
+          ] } } ]
+        },
+        {
+          "name": "Iniciar execucao",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"mecanico\": \"Carlos\"\n}" },
+            "url": { "raw": "{{baseUrl}}/execution/v1/execucoes/{{ordemServicoId}}/iniciar", "host": ["{{baseUrl}}"], "path": ["execution","v1","execucoes","{{ordemServicoId}}","iniciar"] },
+            "description": "Tira da fila. Publica ExecucaoIniciada, que leva a OS para EM_EXECUCAO."
+          },
+          "event": [ { "listen": "test", "script": { "exec": [
+            "pm.test('200 ou 409 se ja iniciou', () => pm.expect([200,409]).to.include(pm.response.code));"
+          ] } } ]
+        },
+        {
+          "name": "Finalizar um servico",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"observacao\": \"pastilhas trocadas, disco em bom estado\"\n}" },
+            "url": { "raw": "{{baseUrl}}/execution/v1/execucoes/{{ordemServicoId}}/servicos/{{servicoId}}/finalizar", "host": ["{{baseUrl}}"], "path": ["execution","v1","execucoes","{{ordemServicoId}}","servicos","{{servicoId}}","finalizar"] },
+            "description": "Grava a hora de fim do servico. E daqui que sai o tempo medio por servico."
+          }
+        },
+        {
+          "name": "Finalizar a execucao",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/execution/v1/execucoes/{{ordemServicoId}}/finalizar", "host": ["{{baseUrl}}"], "path": ["execution","v1","execucoes","{{ordemServicoId}}","finalizar"] },
+            "description": "Da baixa definitiva nas pecas e publica ExecucaoFinalizada. Recusa com 409 se houver servico pendente."
+          }
+        },
+        {
+          "name": "Falhar a execucao (dispara o estorno)",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"motivo\": \"suspensao comprometida\",\n  \"etapa\": \"EXECUCAO_SERVICO\"\n}" },
+            "url": { "raw": "{{baseUrl}}/execution/v1/execucoes/{{ordemServicoId}}/falhar", "host": ["{{baseUrl}}"], "path": ["execution","v1","execucoes","{{ordemServicoId}}","falhar"] },
+            "description": "Compensacao da saga: devolve as pecas e publica ExecucaoFalhou, que faz o Billing estornar no Mercado Pago."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Estoque",
+      "item": [
+        {
+          "name": "Registrar entrada de peca",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"referencia\": \"NF-900\",\n  \"quantidade\": 10\n}" },
+            "url": { "raw": "{{baseUrl}}/execution/v1/estoque/{{itemId}}/entradas", "host": ["{{baseUrl}}"], "path": ["execution","v1","estoque","{{itemId}}","entradas"] },
+            "description": "A referencia (nota fiscal) e a chave de idempotencia: a mesma nota lancada duas vezes nao dobra o estoque."
+          },
+          "event": [ { "listen": "test", "script": { "exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));",
+            "pm.test('devolve o saldo', () => pm.expect(pm.response.json()).to.have.property('saldo'));"
+          ] } } ]
+        },
+        {
+          "name": "Consultar saldo",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/execution/v1/estoque/{{itemId}}", "host": ["{{baseUrl}}"], "path": ["execution","v1","estoque","{{itemId}}"] },
+            "description": "O saldo e a soma das movimentacoes, nao um campo gravado."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Relatorios",
+      "item": [
+        {
+          "name": "Tempo medio de OS",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/execution/v1/relatorios/tempo-medio-os", "host": ["{{baseUrl}}"], "path": ["execution","v1","relatorios","tempo-medio-os"] }
+          }
+        },
+        {
+          "name": "Tempo medio por servico",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/execution/v1/relatorios/tempo-medio-servicos", "host": ["{{baseUrl}}"], "path": ["execution","v1","relatorios","tempo-medio-servicos"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Infra",
+      "item": [
+        {
+          "name": "Health check",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/actuator/health", "host": ["{{baseUrl}}"], "path": ["actuator","health"] },
+            "description": "O mesmo endpoint que o Kubernetes usa nos probes."
+          },
+          "event": [ { "listen": "test", "script": { "exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));",
+            "pm.test('UP', () => pm.expect(pm.response.json().status).to.eql('UP'));"
+          ] } } ]
+        }
+      ]
+    }
+  ]
+}
