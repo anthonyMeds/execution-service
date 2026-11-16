@@ -1,18 +1,15 @@
 # Evidencias
 
-Suba aqui o print do relatorio de cobertura, exigido pelo enunciado da Fase 4.
+Prints exigidos pelo enunciado da Fase 4, referenciados no README da raiz:
 
-Como gerar:
+| Arquivo | O que mostra |
+| --- | --- |
+| `cobertura.png` | Relatorio do JaCoCo (`target/site/jacoco/index.html`) |
+| `bdd-cucumber.png` | Relatorio do Cucumber (`target/cucumber/relatorio-bdd.html`) |
+
+Como atualizar:
 
 ```bash
 mvn verify
-# abra target/site/jacoco/index.html no navegador
-# tire o print da tabela de cobertura e salve como cobertura.png
-```
-
-Depois, troque a linha correspondente na secao "Evidencia de cobertura" do
-README da raiz por:
-
-```markdown
-![Cobertura de testes](docs/evidencias/cobertura.png)
+# abra os dois relatorios no navegador e salve o print com o mesmo nome
 ```
