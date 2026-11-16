@@ -170,6 +170,7 @@ Invoke-RestMethod -Method Post "http://localhost:8082/execution/v1/estoque/$($i1
 $corpo = @{
   clienteId = 1; veiculoId = 1
   descricaoProblema = "barulho ao frear"
+  descricaoServicosExecutados = "troca de pastilhas e alinhamento"
   servicos = @(@{ servicoId = $s1.id; nome = $s1.nome }, @{ servicoId = $s2.id; nome = $s2.nome })
   itens    = @(@{ itemId = $i1.id; nome = $i1.nome; quantidade = 4 })
 } | ConvertTo-Json -Depth 4

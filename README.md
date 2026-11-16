@@ -187,7 +187,9 @@ em [docs/roteiro-validacao-fase4.md](docs/roteiro-validacao-fase4.md).
 
 Colocar uma OS na fila **nao tem endpoint**: chega por mensagem, do OS Service.
 
-Collection Postman em [docs/postman/](docs/postman/).
+Collection Postman em [docs/postman/](docs/postman/). Swagger UI em
+`/execution/v1/swagger-ui.html` (especificacao OpenAPI em `/execution/v1/api-docs`),
+local e no LoadBalancer do cluster.
 
 ## Testes e cobertura
 

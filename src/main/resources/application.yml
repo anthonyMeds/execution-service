@@ -31,6 +31,14 @@ oficina:
 server:
   port: ${SERVER_PORT:8080}
 
+# Swagger sob o mesmo prefixo dos controllers (/execution/v1): assim a rota
+# /execution/v1/{proxy+} do API Gateway tambem alcanca a documentacao.
+springdoc:
+  api-docs:
+    path: /execution/v1/api-docs
+  swagger-ui:
+    path: /execution/v1/swagger-ui.html
+
 management:
   endpoints:
     web:

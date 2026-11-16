@@ -335,6 +335,30 @@ curl -s http://<DNS-do-execution>/actuator/health
 
 Esperado: `{"status":"UP"}`. O DNS de um LoadBalancer novo leva 1 a 2 minutos para responder.
 
+## Retomar o ambiente (nova sessão do lab)
+
+O Learner Lab desliga as máquinas no fim de cada sessão. O cluster, o banco, os Services e os
+segredos continuam lá, mas as credenciais mudam e os nós às vezes não voltam ao cluster.
+
+```powershell
+notepad "$env:USERPROFILE\.aws\credentials"      # cole o bloco novo do AWS Details
+aws sts get-caller-identity
+aws eks update-kubeconfig --name oficina-eks --region us-east-1
+kubectl get nodes
+```
+
+Se `kubectl get nodes` responder `No resources found` com as máquinas `running` há mais de
+5 minutos, troque as máquinas por novas (o grupo de nós recria sozinho, em uns 5 minutos):
+
+```powershell
+$ids = aws ec2 describe-instances --filters "Name=tag:eks:cluster-name,Values=oficina-eks" "Name=instance-state-name,Values=running" --query "Reservations[].Instances[].InstanceId" --output text
+aws ec2 terminate-instances --instance-ids $ids.Split()
+kubectl get nodes          # repita até 2 nós Ready; os pods sobem sozinhos
+```
+
+O RabbitMQ e o Mongo voltam vazios (sem volume persistente): filas zeradas e estoque do
+execution zerado. OS e Billing guardam tudo no RDS.
+
 ## 10. Problemas que já aconteceram
 
 | Sintoma | Causa | Solução |
