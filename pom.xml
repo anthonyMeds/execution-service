@@ -24,6 +24,8 @@
 		<!-- Requisito da Fase 4: cobertura minima de 80% por servico. -->
 		<jacoco.cobertura.minima>0.80</jacoco.cobertura.minima>
 		<cucumber.version>7.20.1</cucumber.version>
+		<!-- Mesma versao do OS Service e do Billing (compativel com o Boot 4). -->
+		<springdoc.version>3.0.2</springdoc.version>
 	</properties>
 
 	<dependencies>
@@ -48,6 +50,12 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-amqp</artifactId>
+		</dependency>
+		<!-- Swagger UI e /api-docs gerados a partir dos controllers. -->
+		<dependency>
+			<groupId>org.springdoc</groupId>
+			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+			<version>${springdoc.version}</version>
 		</dependency>
 		<!-- Mesmo uso dos outros projetos do time: @Getter e @RequiredArgsConstructor. -->
 		<dependency>
