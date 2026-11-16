@@ -211,15 +211,25 @@ Relatorios gerados: cobertura em `target/site/jacoco/index.html`, BDD em
 
 ### Evidencia de cobertura
 
-_Pendente: rodar `mvn verify` e salvar o print em `docs/evidencias/cobertura.png`
-(instrucoes em [docs/evidencias/](docs/evidencias/))._
+Cobertura total de 99% das instrucoes e 90% dos branches (minimo exigido: 80%):
+
+![Cobertura de testes](docs/evidencias/cobertura.png)
+
+Os quatro cenarios BDD passando:
+
+![Relatorio BDD](docs/evidencias/bdd-cucumber.png)
+
+Para atualizar os prints, veja [docs/evidencias/](docs/evidencias/).
 
 ## Deploy
 
 Manifests em [k8s/](k8s/), no namespace `oficina`, usando o RabbitMQ que o OS
 Service implanta (credenciais do `rabbitmq-secret`) e um MongoDB dentro do
 cluster. O pipeline `.github/workflows/deploy.yml` gera a imagem, publica no
-Docker Hub e aplica no EKS depois que o CI passa na `main`. O agent do New Relic
+ECR da conta (tag = commit) e aplica no EKS depois que o CI passa na `main`, como o
+OS Service e o Billing. Precisa so dos secrets `AWS_ACCESS_KEY_ID`,
+`AWS_SECRET_ACCESS_KEY` e `AWS_SESSION_TOKEN`; `AWS_REGION` e `EKS_CLUSTER_NAME`
+sao variaveis opcionais (padrao `us-east-1` e `oficina-eks`). O agent do New Relic
 e injetado pelo operador, como nos outros dois servicos.
 
 Ordem no cluster: OS Service (traz o RabbitMQ), Billing, e este servico **antes de
@@ -227,7 +237,7 @@ qualquer OS ser aprovada** -- a fila dele so existe depois que ele sobe.
 
 ## O que falta
 
-- [ ] Print da cobertura em `docs/evidencias/`
+- [x] Print da cobertura em `docs/evidencias/`
 - [ ] Proteger a branch `main` (PR obrigatorio e CI como checagem)
-- [ ] Rota `/execution/v1` no API Gateway (branch `feat/rota-execution-service` do `oficina-lambda`)
+- [x] Rota `/execution/v1` no API Gateway (`oficina-lambda`, PR #5)
 - [ ] Deploy no EKS e o trace no New Relic, para o video
