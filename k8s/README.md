@@ -33,7 +33,13 @@ kubectl rollout status deployment/execution-service -n oficina
 kubectl get svc execution-service-lb -n oficina    # DNS para o API Gateway
 ```
 
-O pipeline `.github/workflows/deploy.yml` faz exatamente isso, com a imagem nova.
+O pipeline `.github/workflows/deploy.yml` faz exatamente isso, com a imagem nova do
+ECR ja no apply do deployment. A mao, troque a imagem antes do rollout:
+
+```bash
+kubectl set image deployment/execution-service \
+  execution-service=<conta>.dkr.ecr.us-east-1.amazonaws.com/oficina-execution:<commit> -n oficina
+```
 
 ## Conferir que a fila foi criada
 
