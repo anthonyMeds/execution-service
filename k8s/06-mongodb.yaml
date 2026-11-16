@@ -30,10 +30,12 @@ spec:
           ports:
             - name: mongodb
               containerPort: 27017
+          # Porta aberta em vez de "mongosh --eval ping": o mongosh leva mais que o timeout padrão de 1s
+          # para subir nos nós t3.medium, a sonda falhava sempre e o pod nunca ficava pronto
           readinessProbe:
-            exec:
-              command: ["mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
-            initialDelaySeconds: 10
+            tcpSocket:
+              port: 27017
+            initialDelaySeconds: 5
             periodSeconds: 10
           volumeMounts:
             - name: dados
